@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>NIGHT ISLAND — vylepšená verze</title>
+<style>
+:root{--cyan:#5de7ff;--pink:#ff4f9a;--glass:rgba(5,12,27,.72)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07101e;color:#fff;font-family:Inter,system-ui,Arial}
+canvas{display:block}#game{position:fixed;inset:0}
+.hud{position:fixed;inset:0;pointer-events:none}
+.panel{background:var(--glass);border:1px solid rgba(93,231,255,.35);box-shadow:0 0 24px #00b9ff18;backdrop-filter:blur(10px);border-radius:14px;padding:10px 13px}
+#brand{position:absolute;left:14px;top:12px;font-weight:1000;letter-spacing:2px;font-size:17px;text-shadow:0 0 14px #00d9ff}
+#brand small{display:block;font-size:9px;letter-spacing:3px;color:var(--cyan);font-weight:700}
+#stats{position:absolute;right:12px;top:12px;display:flex;gap:8px;align-items:flex-start}
+.stat{text-align:center;min-width:62px;font-size:10px;color:#a9c8da}.stat b{display:block;color:#fff;font-size:19px}
+#healthbox{position:absolute;left:14px;top:67px;width:190px}
+.barlabel{display:flex;justify-content:space-between;font-size:10px;color:#d7e8f3;margin:4px 0}
+.bar{height:8px;border-radius:10px;background:#263347;overflow:hidden}.fill{height:100%;width:100%;background:linear-gradient(90deg,#20e3a2,#8bffcf);transition:width .15s}
+#stormbar{height:5px;background:#263347;border-radius:9px;overflow:hidden;margin-top:5px}.stormfill{height:100%;width:100%;background:linear-gradient(90deg,#8a5cff,#ff5bb5)}
+#message{position:absolute;top:23%;left:50%;transform:translateX(-50%);font-weight:900;font-size:clamp(18px,4vw,32px);text-align:center;text-shadow:0 3px 16px #000;white-space:nowrap}
+#help{position:absolute;left:50%;bottom:15px;transform:translateX(-50%);font-size:11px;color:#c7d7e8;text-align:center;background:#07101eaa;padding:7px 12px;border-radius:20px}
+#joystick{position:absolute;left:22px;bottom:30px;width:120px;height:120px;border-radius:50%;border:2px solid #b4eaff70;background:#b4eaff18;pointer-events:auto;touch-action:none}
+#stick{position:absolute;left:35px;top:35px;width:46px;height:46px;border-radius:50%;background:#8beaffbb;border:2px solid white;box-shadow:0 0 18px #39dfff;pointer-events:none}
+.action{position:absolute;right:22px;bottom:34px;width:76px;height:76px;border-radius:50%;border:2px solid #ff80bd;background:#ff3c8a55;color:white;font-weight:900;font-size:12px;pointer-events:auto;touch-action:none;box-shadow:0 0 22px #ff3c8a55}
+#aim{right:110px;bottom:45px;width:54px;height:54px;border-color:#65eaff;background:#30cfff33;font-size:10px}
+#overlay{position:fixed;inset:0;background:linear-gradient(135deg,#061020ee,#08182bea);display:flex;align-items:center;justify-content:center;padding:20px;z-index:5}
+.card{width:min(440px,100%);text-align:center;padding:28px 22px;border:1px solid #55dfff66;border-radius:22px;background:linear-gradient(150deg,#10233beF,#07111fee);box-shadow:0 0 70px #00c8ff22}
+.logo{font-size:clamp(34px,9vw,55px);font-weight:1000;letter-spacing:4px;line-height:1;text-shadow:0 0 22px #13cfff}
+.logo span{color:var(--pink)}.sub{color:#9db9cb;letter-spacing:3px;font-size:10px;margin:10px 0 24px}
+button.primary{border:0;border-radius:12px;padding:15px 30px;color:#04101c;background:linear-gradient(90deg,#67edff,#9bfff0);font-weight:1000;font-size:16px;letter-spacing:1px;box-shadow:0 8px 28px #28dfff44}
+.instructions{font-size:12px;line-height:1.7;color:#c0d5e5;margin:18px 0 0}
+#toast{position:absolute;top:31%;left:50%;transform:translate(-50%,-50%);padding:10px 16px;border-radius:12px;background:#07101edd;border:1px solid #65eaff;opacity:0;transition:opacity .2s;font-weight:800}
+#fullscreen{position:absolute;right:12px;top:105px;pointer-events:auto;border:1px solid #65eaff99;border-radius:10px;background:#07101ecc;color:#eafaff;padding:9px 12px;font-size:11px;font-weight:900;letter-spacing:.5px;touch-action:manipulation}
+
+/* Landscape-first mobile layout */
+@media (orientation:portrait) and (max-width:900px){
+ #rotateNotice{display:flex}
+ #overlay .card{max-height:86dvh;overflow:auto}
+}
+@media (orientation:landscape){#rotateNotice{display:none}}
+#overlay{background:radial-gradient(ellipse at 68% 45%,rgba(16,105,139,.38),transparent 48%),linear-gradient(110deg,#050b18f2,#071a2be8 55%,#10162deF)}
+#overlay:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.36),transparent 65%),repeating-linear-gradient(135deg,transparent 0 42px,rgba(100,220,255,.035) 43px 44px);pointer-events:none}
+.card{position:relative;width:min(850px,96vw);min-height:min(430px,78dvh);display:grid;grid-template-columns:1.05fr .95fr;align-items:center;gap:22px;padding:clamp(18px,3vw,34px);text-align:left;overflow:hidden;background:linear-gradient(125deg,rgba(8,25,48,.96),rgba(9,46,69,.91) 55%,rgba(30,20,54,.94));border:1px solid #61e7ff99;box-shadow:0 20px 90px #0009,0 0 60px #00cfff22}
+.card:after{content:"";position:absolute;width:310px;height:310px;border-radius:50%;right:9%;top:12%;background:radial-gradient(circle,#1ce3ff33,transparent 68%);pointer-events:none}
+.lobby-left,.lobby-right{position:relative;z-index:1}.lobby-kicker{font-size:11px;letter-spacing:4px;color:#62eaff;font-weight:900;margin-bottom:14px}.logo{font-size:clamp(38px,7vw,68px);letter-spacing:2px}.sub{font-size:11px;letter-spacing:3px;margin:12px 0 20px}.lobby-desc{max-width:390px;color:#c6dce9;font-size:clamp(12px,1.7vw,15px);line-height:1.6}.lobby-right{min-height:250px;display:flex;flex-direction:column;justify-content:center;align-items:center;border:1px solid #70dfff55;border-radius:18px;background:linear-gradient(160deg,#183d58aa,#09172dcc);padding:20px;box-shadow:inset 0 0 40px #22cfff12}
+.lobby-avatar{font-size:clamp(76px,13vw,126px);line-height:1;filter:drop-shadow(0 12px 20px #00cfff66);margin:4px 0 12px}.lobby-player{font-weight:1000;letter-spacing:2px;font-size:15px}.lobby-status{font-size:10px;color:#9cc7dc;letter-spacing:2px;margin:6px 0 16px}.lobby-mode{width:100%;padding:10px 12px;border-radius:10px;background:#071321aa;border:1px solid #68dcff55;text-align:center;font-size:11px;font-weight:900;letter-spacing:2px;color:#c9f7ff}
+button.primary{width:min(100%,340px);padding:16px 22px;cursor:pointer} .instructions{font-size:11px;margin-top:12px}
+#rotateNotice{display:none;position:fixed;inset:0;z-index:20;background:#050b18f5;color:white;align-items:center;justify-content:center;text-align:center;padding:24px;font-weight:900;letter-spacing:1px}
+#rotateNotice .rotate-icon{font-size:56px;margin-bottom:14px;display:block;animation:turnPhone 1.8s ease-in-out infinite alternate}
+@keyframes turnPhone{from{transform:rotate(0)}to{transform:rotate(90deg)}}
+@media(max-height:430px) and (orientation:landscape){.card{min-height:90dvh;padding:12px 22px;gap:14px}.lobby-right{min-height:190px;padding:10px}.lobby-avatar{font-size:70px}.instructions{margin-top:7px}.sub{margin:7px 0 12px}}
+@media(min-width:800px){#joystick{width:130px;height:130px}#stick{left:39px;top:39px}#help{font-size:13px}}
+</style>
+
+<meta name="theme-color" content="#07101e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NIGHT ISLAND">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+<div id="game"></div>
+<div class="hud">
+ <div id="brand">NIGHT ISLAND<small>LAST PLAYER STANDING</small></div>
+ <div id="healthbox" class="panel">
+  <div class="barlabel"><span>ENERGIE</span><b id="hptext">100 / 100</b></div><div class="bar"><div id="hpfill" class="fill"></div></div>
+  <div class="barlabel"><span>BOUŘE</span><b id="stormtext">90 s</b></div><div id="stormbar"><div id="stormfill" class="stormfill"></div></div>
+ </div>
+ <div id="stats">
+  <div class="panel stat">HRÁČI<b id="players">6</b></div>
+  <div class="panel stat">BODY<b id="score">0</b></div>
+  <div class="panel stat">JÁDRA<b id="cores">0</b></div>
+ </div>
+ <button id="fullscreen" type="button">⛶ CELOU OBRAZOVKU</button>
+ <div id="message">PŘIPRAV SE!</div>
+ <div id="toast"></div>
+ <div id="help">WASD / šipky = pohyb · myš = kamera · klik / FIRE = výboj</div>
+ <div id="joystick"><div id="stick"></div></div>
+ <button class="action" id="fire">FIRE</button><button class="action" id="aim">DASH</button>
+</div>
+<div id="overlay">
+ <div class="card">
+  <div class="lobby-left">
+   <div class="lobby-kicker">SEASON 01 · EXPANDED ISLAND</div>
+   <div class="logo">NIGHT <span>ISLAND</span></div>
+   <div class="sub">BATTLE ROYALE · SOLO</div>
+   <div class="lobby-desc">Ostrov čeká. Připrav se na výsadek, najdi energetická jádra a zůstaň posledním hráčem ve hře.</div>
+   <p><button class="primary" id="start">▶ VSTOUPIT DO ZÁPASU</button></p>
+   <div class="instructions">Ovládání: levý joystick = pohyb · pravá strana = kamera · FIRE = výboj · DASH = rychlý úskok</div>
+  </div>
+  <div class="lobby-right">
+   <div class="lobby-mode">REŽIM HRY · SOLO</div>
+   <div class="lobby-avatar">🧑‍🚀</div>
+   <div class="lobby-player">OSTROVNÍ PRŮZKUMNÍK</div>
+   <div class="lobby-status">PŘIPRAVEN K ZÁPASU</div>
+   <div class="lobby-mode">MAPA: ISLAND ZERO · EXPANDED</div>
+  </div>
+ </div>
+</div>
+<div id="resultScreen" style="display:none;position:fixed;inset:0;z-index:20;background:rgba(2,7,17,.88);align-items:center;justify-content:center;padding:18px;text-align:center">
+ <div style="width:min(520px,94vw);background:linear-gradient(145deg,#14283c,#081321);border:2px solid #62dcff;border-radius:18px;padding:22px;box-shadow:0 0 45px #19bfff44;color:white">
+  <div style="font-size:11px;letter-spacing:4px;color:#67eaff;font-weight:900">NIGHT ISLAND · VÝSLEDEK ZÁPASU</div>
+  <h1 id="resultTitle" style="font-size:clamp(28px,5vw,46px);margin:12px 0">KONEC HRY</h1>
+  <table style="width:100%;border-collapse:collapse;margin:16px 0;text-align:left;font-weight:800">
+   <tr><td style="padding:11px;border-bottom:1px solid #ffffff30;color:#b9d7e7">Umístění</td><td id="resultPlace" style="padding:11px;border-bottom:1px solid #ffffff30;text-align:right">—</td></tr>
+   <tr><td style="padding:11px;border-bottom:1px solid #ffffff30;color:#b9d7e7">Body</td><td id="resultScore" style="padding:11px;border-bottom:1px solid #ffffff30;text-align:right">0</td></tr>
+   <tr><td style="padding:11px;border-bottom:1px solid #ffffff30;color:#b9d7e7">Jádra</td><td id="resultCores" style="padding:11px;border-bottom:1px solid #ffffff30;text-align:right">0</td></tr>
+  </table>
+  <button id="resultOK" class="primary" style="min-width:150px">OK</button>
+ </div>
+</div>
+<div id="rotateNotice"><div><span class="rotate-icon">📱</span>Otoč iPhone na šířku<br><small style="display:block;margin-top:10px;color:#9fc6d8;font-weight:500">NIGHT ISLAND se hraje v režimu na šířku</small></div></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(()=>{
+const root=document.getElementById('game'), overlay=document.getElementById('overlay');
+const fullscreenButton=document.getElementById('fullscreen');
+fullscreenButton.addEventListener('click',async()=>{
+  try{
+    const el=document.documentElement;
+    if(document.fullscreenElement){
+      await document.exitFullscreen();
+    }else if(el.requestFullscreen){
+      await el.requestFullscreen();
+    }else if(el.webkitRequestFullscreen){
+      el.webkitRequestFullscreen();
+    }else{
+      showToast('Na iPhonu použij Sdílet → Přidat na plochu');
+    }
+  }catch(e){
+    showToast('Celou obrazovku tento prohlížeč nepovolil');
+  }
+});
+document.addEventListener('fullscreenchange',()=>{
+  fullscreenButton.textContent=document.fullscreenElement?'⛶ UKONČIT CELOU OBRAZOVKU':'⛶ CELOU OBRAZOVKU';
+});
+
+if(!window.THREE){document.querySelector('.instructions').innerHTML='Hru se nepodařilo načíst. Zkontroluj připojení k internetu a obnov stránku.';return;}
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x08172a);scene.fog=new THREE.Fog(0x08172a,75,210);
+const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,420);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;root.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0x9bdcff,0x203020,2.0));
+const sun=new THREE.DirectionalLight(0xffe2bd,2.2);sun.position.set(-25,40,18);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+const mat=(c,r=.8,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+const grass=mat(0x315b46),sand=mat(0x9a895d),dark=mat(0x18283a),wood=mat(0x594638),roof=mat(0x293d52),cyan=new THREE.MeshStandardMaterial({color:0x43eaff,emissive:0x087eaa,emissiveIntensity:1.4}),pink=new THREE.MeshStandardMaterial({color:0xff579e,emissive:0x8e164e,emissiveIntensity:1.0});
+const ground=new THREE.Mesh(new THREE.CircleGeometry(120,80),grass);ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const beach=new THREE.Mesh(new THREE.RingGeometry(99,120,80),sand);beach.rotation.x=-Math.PI/2;beach.position.y=.025;scene.add(beach);
+const water=new THREE.Mesh(new THREE.CircleGeometry(165,80),new THREE.MeshStandardMaterial({color:0x0b4260,roughness:.35,metalness:.25}));water.rotation.x=-Math.PI/2;water.position.y=-.5;scene.add(water);
+const grid=new THREE.GridHelper(240,96,0x477e91,0x24495a);grid.position.y=.015;grid.material.opacity=.12;grid.material.transparent=true;scene.add(grid);
+function box(x,y,z,sx,sy,sz,material){let o=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o;}
+function tree(x,z,s=1){let trunk=new THREE.Mesh(new THREE.CylinderGeometry(.22*s,.32*s,2*s,7),wood);trunk.position.set(x,s,z);trunk.castShadow=true;scene.add(trunk);for(let i=0;i<3;i++){let crown=new THREE.Mesh(new THREE.ConeGeometry((1.25-i*.18)*s,2.2*s,7),mat(i===1?0x28634c:0x1d513e));crown.position.set(x,2.1*s+i*.65*s,z);crown.castShadow=true;scene.add(crown);}}
+for(let i=0;i<100;i++){let a=Math.random()*Math.PI*2,r=24+Math.random()*82;tree(Math.cos(a)*r,Math.sin(a)*r,.7+Math.random()*.55);}
+function house(x,z,w=6,d=5){box(x,1.5,z,w,3,d,wood);let r=box(x,3.5,z,w+1,1.2,d+1,roof);r.rotation.z=.08;box(x,1,z+d/2+.03,1.2,2, .12,dark);box(x-w/4,2,z+d/2+.07,1.1,.9,.12,cyan);box(x+w/4,2,z+d/2+.07,1.1,.9,.12,cyan);}
+house(-13,-10,7,6);house(12,-15,6,7);house(-22,12,7,6);house(20,13,8,6);house(2,24,7,6);
+for(let i=0;i<28;i++){let a=Math.random()*6.28,r=18+Math.random()*76;let rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.8+Math.random()*1.4,0),mat(0x65716d));rock.position.set(Math.cos(a)*r,.5,Math.sin(a)*r);rock.scale.y=.65;rock.castShadow=true;scene.add(rock);}
+const player=new THREE.Group();scene.add(player);
+const body=new THREE.Mesh(new THREE.CapsuleGeometry(.48,.9,4,8),mat(0x243c70,.5,.25));body.position.y=1.05;body.castShadow=true;player.add(body);
+const chest=new THREE.Mesh(new THREE.BoxGeometry(.72,.48,.4),cyan);chest.position.set(0,1.35,-.04);player.add(chest);
+const head=new THREE.Mesh(new THREE.SphereGeometry(.31,16,12),mat(0xffc69e));head.position.y=1.9;head.castShadow=true;player.add(head);
+const visor=new THREE.Mesh(new THREE.BoxGeometry(.43,.13,.1),mat(0x102238,.2,.4));visor.position.set(0,1.95,-.27);player.add(visor);
+const pack=new THREE.Mesh(new THREE.BoxGeometry(.48,.65,.25),mat(0x18253c));pack.position.set(0,1.2,.34);player.add(pack);
+player.position.set(0,0,0);
+const bots=[],cores=[],shots=[];let running=false,hp=100,score=0,coreCount=0,time=150,elapsed=0,camYaw=0,camPitch=.18,fireCD=0,dashCD=0,damageFlash=0;
+function makeBot(x,z,i){let g=new THREE.Group();let b=new THREE.Mesh(new THREE.CapsuleGeometry(.43,.85,6,10),mat(i%2?0x8b3d76:0x9c593d));b.position.y=1;b.castShadow=true;g.add(b);let h=new THREE.Mesh(new THREE.SphereGeometry(.29,16,12),mat(0xf0c4a2));h.position.y=1.82;h.castShadow=true;g.add(h);let eye=new THREE.Mesh(new THREE.BoxGeometry(.38,.1,.08),pink);eye.position.set(0,1.88,-.25);g.add(eye);let gun=new THREE.Group();let barrel=new THREE.Mesh(new THREE.BoxGeometry(.16,.16,.85),mat(0x26384a,.35,.7));barrel.position.set(.38,1.25,-.48);gun.add(barrel);let glow=new THREE.Mesh(new THREE.BoxGeometry(.1,.09,.35),cyan);glow.position.set(.38,1.25,-.91);gun.add(glow);g.add(gun);g.position.set(x,0,z);scene.add(g);bots.push({g,hp:55,cd:1.2+Math.random()*1.8,phase:Math.random()*6,alive:true,gun,strafe:Math.random()<.5?-1:1});}
+for(let i=0;i<15;i++){let a=i*2.399+0.4,r=38+Math.random()*48;makeBot(Math.cos(a)*r,Math.sin(a)*r,i);}
+function makeCore(x,z){let g=new THREE.Group();let gem=new THREE.Mesh(new THREE.OctahedronGeometry(.65),cyan);gem.position.y=1;g.add(gem);let ring=new THREE.Mesh(new THREE.TorusGeometry(.9,.055,8,24),cyan);ring.rotation.x=Math.PI/2;ring.position.y=1;g.add(ring);g.position.set(x,0,z);scene.add(g);cores.push({g,active:true,phase:Math.random()*6});}
+for(let i=0;i<20;i++){let a=i*2.4,r=10+(i%5)*17;makeCore(Math.cos(a)*r,Math.sin(a)*r);}
+const storm=new THREE.Mesh(new THREE.CylinderGeometry(120,120,30,80,1,true),new THREE.MeshBasicMaterial({color:0x8d52ff,transparent:true,opacity:.10,side:THREE.DoubleSide}));storm.position.y=15;scene.add(storm);
+const stormRing=new THREE.Mesh(new THREE.TorusGeometry(120,.22,8,120),new THREE.MeshBasicMaterial({color:0xc27bff,emissive:0x6b21b5}));stormRing.rotation.x=Math.PI/2;stormRing.position.y=.2;scene.add(stormRing);
+const clock=new THREE.Clock();let joy={x:0,y:0,active:false},keys={};let pointer={down:false,x:0,y:0};
+function showToast(t){let el=document.getElementById('toast');el.textContent=t;el.style.opacity=1;clearTimeout(showToast.t);showToast.t=setTimeout(()=>el.style.opacity=0,1300);}
+function updateHUD(){document.getElementById('hptext').textContent=Math.max(0,Math.ceil(hp))+' / 100';document.getElementById('hpfill').style.width=Math.max(0,hp)+'%';document.getElementById('score').textContent=score;document.getElementById('cores').textContent=coreCount;document.getElementById('players').textContent=1+bots.filter(b=>b.alive).length;document.getElementById('stormtext').textContent=Math.ceil(time)+' s';document.getElementById('stormfill').style.width=(time/150*100)+'%';}
+function endGame(win){running=false;document.getElementById('resultTitle').textContent=win?'VÍTĚZSTVÍ!':'KONEC HRY';document.getElementById('resultPlace').textContent=win?'1. MÍSTO':'VYŘAZEN';document.getElementById('resultScore').textContent=score;document.getElementById('resultCores').textContent=coreCount;document.getElementById('resultScreen').style.display='flex';}
+function resetGame(){
+  running=false;
+  for(const b of bots) scene.remove(b.g); bots.length=0;
+  for(const c of cores) scene.remove(c.g); cores.length=0;
+  for(const s of shots){scene.remove(s.o);s.o.geometry.dispose();s.o.material.dispose();} shots.length=0;
+  for(let i=0;i<15;i++){const a=i*2.399+0.4,r=38+Math.random()*48;makeBot(Math.cos(a)*r,Math.sin(a)*r,i);}
+  for(let i=0;i<20;i++){const a=i*2.4,r=10+(i%5)*17;makeCore(Math.cos(a)*r,Math.sin(a)*r);}
+  player.position.set(0,0,0);player.rotation.set(0,0,0);
+  hp=100;score=0;coreCount=0;time=150;elapsed=0;camYaw=0;camPitch=.18;fireCD=0;dashCD=0;damageFlash=0;
+  joy.x=0;joy.y=0;joy.active=false;stick.style.transform='translate(0,0)';
+  storm.scale.setScalar(1);stormRing.scale.setScalar(1);
+  overlay.querySelector('.logo').innerHTML='NIGHT <span>ISLAND</span>';
+  overlay.querySelector('.sub').textContent='SEASON 01 · EXPANDED ISLAND';
+  document.getElementById('start').textContent='VSTOUPIT DO ZÁPASU';
+  updateHUD();
+}
+function shoot(){if(!running||fireCD>0)return;fireCD=.28;let dir=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),player.rotation.y);let origin=player.position.clone().add(new THREE.Vector3(0,1.35,0));let target=null,best=34;for(let b of bots){if(!b.alive)continue;let v=b.g.position.clone().sub(origin);let dist=v.length();v.y=0;let dot=v.normalize().dot(dir);if(dot>.94&&dist<best){best=dist;target=b;}}let end=origin.clone().add(dir.clone().multiplyScalar(27));if(target){target.hp-=28;end.copy(target.g.position).add(new THREE.Vector3(0,1.1,0));if(target.hp<=0){target.alive=false;scene.remove(target.g);score+=100;showToast('PROTIVNÍK VYŘAZEN +100');}else showToast('ZÁSAH!');}let geo=new THREE.BufferGeometry().setFromPoints([origin,end]);let line=new THREE.Line(geo,new THREE.LineBasicMaterial({color:0x66f4ff}));scene.add(line);shots.push({o:line,t:.09});}
+function dash(){if(!running||dashCD>0)return;dashCD=2.3;let f=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),player.rotation.y);player.position.add(f.multiplyScalar(5));showToast('DASH!');}
+document.getElementById('fire').addEventListener('pointerdown',e=>{e.preventDefault();shoot();});document.getElementById('aim').addEventListener('pointerdown',e=>{e.preventDefault();dash();});
+document.getElementById('resultOK').onclick=()=>{document.getElementById('resultScreen').style.display='none';resetGame();overlay.style.display='flex';};
+document.getElementById('start').onclick=async()=>{try{if(screen.orientation?.lock)await screen.orientation.lock('landscape');}catch(e){} resetGame();overlay.style.display='none';running=true;showToast('HODNĚ ŠTĚSTÍ!');};
+const joyEl=document.getElementById('joystick'),stick=document.getElementById('stick');function setJoy(e){let r=joyEl.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,l=Math.hypot(dx,dy),m=38;if(l>m){dx=dx/l*m;dy=dy/l*m;}joy.x=dx/m;joy.y=dy/m;stick.style.transform=`translate(${dx}px,${dy}px)`;}
+joyEl.addEventListener('pointerdown',e=>{joy.active=true;joyEl.setPointerCapture(e.pointerId);setJoy(e);});joyEl.addEventListener('pointermove',e=>{if(joy.active)setJoy(e);});function joyEnd(){joy.active=false;joy.x=joy.y=0;stick.style.transform='translate(0,0)';}joyEl.addEventListener('pointerup',joyEnd);joyEl.addEventListener('pointercancel',joyEnd);
+window.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space')shoot();});window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'){pointer.down=true;pointer.x=e.clientX;pointer.y=e.clientY;renderer.domElement.requestPointerLock?.();}});
+document.addEventListener('mousemove',e=>{if(document.pointerLockElement===renderer.domElement&&running){camYaw-=e.movementX*.003;camPitch=Math.max(-.1,Math.min(.65,camPitch+e.movementY*.002));}});
+renderer.domElement.addEventListener('pointerup',()=>{pointer.down=false;});
+let touchLook=null;renderer.domElement.addEventListener('touchstart',e=>{if(e.touches.length&&e.touches[0].clientX>innerWidth*.42)touchLook={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:true});
+renderer.domElement.addEventListener('touchmove',e=>{if(touchLook&&e.touches.length){let t=e.touches[0];camYaw-=(t.clientX-touchLook.x)*.004;camPitch=Math.max(-.1,Math.min(.65,camPitch+(t.clientY-touchLook.y)*.002));touchLook={x:t.clientX,y:t.clientY};}},{passive:true});
+renderer.domElement.addEventListener('touchend',()=>touchLook=null);
+function tick(){requestAnimationFrame(tick);let dt=Math.min(clock.getDelta(),.05);if(running){elapsed+=dt;time=Math.max(0,150-elapsed);fireCD=Math.max(0,fireCD-dt);dashCD=Math.max(0,dashCD-dt);
+let forward=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0)-joy.y;let side=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joy.x;
+let move=new THREE.Vector3(side,0,-forward);if(move.length()>1)move.normalize();move.applyAxisAngle(new THREE.Vector3(0,1,0),camYaw);player.position.addScaledVector(move,dt*10);let dist=Math.hypot(player.position.x,player.position.z);if(dist>110)player.position.multiplyScalar(110/dist);if(move.length()>.08)player.rotation.y=Math.atan2(-move.x,-move.z);
+for(let c of cores){if(!c.active)continue;c.g.rotation.y+=dt*1.4;c.g.position.y=Math.sin(elapsed*2+c.phase)*.15;if(c.g.position.distanceTo(player.position)<2.1){c.active=false;scene.remove(c.g);coreCount++;hp=Math.min(100,hp+18);score+=25;showToast('ENERGETICKÉ JÁDRO +25');}}
+for(let b of bots){if(!b.alive)continue;b.cd-=dt;b.phase+=dt;let toPlayer=player.position.clone().sub(b.g.position);let d=toPlayer.length();let toward=toPlayer.clone();toward.y=0;if(d>0.001)toward.normalize();let sideVec=new THREE.Vector3(-toward.z,0,toward.x).multiplyScalar(b.strafe);let moveAI=new THREE.Vector3();if(d>13)moveAI.addScaledVector(toward,.42);else if(d<8)moveAI.addScaledVector(toward,-.55);moveAI.addScaledVector(sideVec,.85+Math.sin(b.phase*1.4)*.25);b.g.position.addScaledVector(moveAI,dt*2.7);b.g.rotation.y=Math.atan2(-toward.x,-toward.z);if(b.cd<=0&&d<29){b.cd=1.5+Math.random()*1.1;let start=b.g.position.clone().add(new THREE.Vector3(0,1.35,0));let end=player.position.clone().add(new THREE.Vector3(0,1.1,0));let beam=new THREE.Line(new THREE.BufferGeometry().setFromPoints([start,end]),new THREE.LineBasicMaterial({color:0xff65b5}));scene.add(beam);shots.push({o:beam,t:.16});hp-=4;damageFlash=.18;showToast('ZÁSAH OD PROTIVNÍKA');}}
+if(Math.hypot(player.position.x,player.position.z)>Math.max(20,120-time*.67)){hp-=dt*5;damageFlash=.15;}
+if(damageFlash>0){damageFlash-=dt;document.getElementById('healthbox').style.borderColor='#ff4f9a';}else document.getElementById('healthbox').style.borderColor='rgba(93,231,255,.35)';
+storm.scale.setScalar(Math.max(.18,1-time/200));stormRing.scale.setScalar(Math.max(.18,1-time/200));let radius=120-time*.67;stormRing.position.set(0,.2,0);stormRing.geometry.dispose();stormRing.geometry=new THREE.TorusGeometry(Math.max(20,radius),.22,8,100);
+if(hp<=0)endGame(false);else if(bots.every(b=>!b.alive))endGame(true);else if(time<=0){if(Math.hypot(player.position.x,player.position.z)<15)endGame(true);else endGame(false);}
+updateHUD();}
+let target=new THREE.Vector3(player.position.x,1.3,player.position.z);let camDist=7.5;let offset=new THREE.Vector3(Math.sin(camYaw)*camDist,2.8+camPitch*5,Math.cos(camYaw)*camDist);let desired=player.position.clone().add(offset);camera.position.lerp(desired,.12);camera.lookAt(target);
+for(let s of shots){s.t-=dt;if(s.t<=0){scene.remove(s.o);s.o.geometry.dispose();s.o.material.dispose();}}for(let i=shots.length-1;i>=0;i--)if(shots[i].t<=0)shots.splice(i,1);
+renderer.render(scene,camera);}
+tick();
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
+}
+</script>
+</body></html>
