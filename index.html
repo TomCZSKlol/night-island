@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>NIGHT ISLAND — Original Battle Royale</title>
+<style>
+:root{--cyan:#5de7ff;--pink:#ff4f9a;--glass:rgba(5,12,27,.72)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07101e;color:#fff;font-family:Inter,system-ui,Arial}
+canvas{display:block}#game{position:fixed;inset:0}
+.hud{position:fixed;inset:0;pointer-events:none}
+.panel{background:var(--glass);border:1px solid rgba(93,231,255,.35);box-shadow:0 0 24px #00b9ff18;backdrop-filter:blur(10px);border-radius:14px;padding:10px 13px}
+#brand{position:absolute;left:14px;top:12px;font-weight:1000;letter-spacing:2px;font-size:17px;text-shadow:0 0 14px #00d9ff}
+#brand small{display:block;font-size:9px;letter-spacing:3px;color:var(--cyan);font-weight:700}
+#stats{position:absolute;right:12px;top:12px;display:flex;gap:8px;align-items:flex-start}
+.stat{text-align:center;min-width:62px;font-size:10px;color:#a9c8da}.stat b{display:block;color:#fff;font-size:19px}
+#healthbox{position:absolute;left:14px;top:67px;width:190px}
+.barlabel{display:flex;justify-content:space-between;font-size:10px;color:#d7e8f3;margin:4px 0}
+.bar{height:8px;border-radius:10px;background:#263347;overflow:hidden}.fill{height:100%;width:100%;background:linear-gradient(90deg,#20e3a2,#8bffcf);transition:width .15s}
+#stormbar{height:5px;background:#263347;border-radius:9px;overflow:hidden;margin-top:5px}.stormfill{height:100%;width:100%;background:linear-gradient(90deg,#8a5cff,#ff5bb5)}
+#message{position:absolute;top:23%;left:50%;transform:translateX(-50%);font-weight:900;font-size:clamp(18px,4vw,32px);text-align:center;text-shadow:0 3px 16px #000;white-space:nowrap}
+#help{position:absolute;left:50%;bottom:15px;transform:translateX(-50%);font-size:11px;color:#c7d7e8;text-align:center;background:#07101eaa;padding:7px 12px;border-radius:20px}
+#joystick{position:absolute;left:22px;bottom:30px;width:120px;height:120px;border-radius:50%;border:2px solid #b4eaff70;background:#b4eaff18;pointer-events:auto;touch-action:none}
+#stick{position:absolute;left:35px;top:35px;width:46px;height:46px;border-radius:50%;background:#8beaffbb;border:2px solid white;box-shadow:0 0 18px #39dfff;pointer-events:none}
+.action{position:absolute;right:22px;bottom:34px;width:76px;height:76px;border-radius:50%;border:2px solid #ff80bd;background:#ff3c8a55;color:white;font-weight:900;font-size:12px;pointer-events:auto;touch-action:none;box-shadow:0 0 22px #ff3c8a55}
+#aim{right:110px;bottom:45px;width:54px;height:54px;border-color:#65eaff;background:#30cfff33;font-size:10px}
+#overlay{position:fixed;inset:0;background:linear-gradient(135deg,#061020ee,#08182bea);display:flex;align-items:center;justify-content:center;padding:20px;z-index:5}
+.card{width:min(440px,100%);text-align:center;padding:28px 22px;border:1px solid #55dfff66;border-radius:22px;background:linear-gradient(150deg,#10233beF,#07111fee);box-shadow:0 0 70px #00c8ff22}
+.logo{font-size:clamp(34px,9vw,55px);font-weight:1000;letter-spacing:4px;line-height:1;text-shadow:0 0 22px #13cfff}
+.logo span{color:var(--pink)}.sub{color:#9db9cb;letter-spacing:3px;font-size:10px;margin:10px 0 24px}
+button.primary{border:0;border-radius:12px;padding:15px 30px;color:#04101c;background:linear-gradient(90deg,#67edff,#9bfff0);font-weight:1000;font-size:16px;letter-spacing:1px;box-shadow:0 8px 28px #28dfff44}
+.instructions{font-size:12px;line-height:1.7;color:#c0d5e5;margin:18px 0 0}
+#toast{position:absolute;top:31%;left:50%;transform:translate(-50%,-50%);padding:10px 16px;border-radius:12px;background:#07101edd;border:1px solid #65eaff;opacity:0;transition:opacity .2s;font-weight:800}
+#fullscreen{position:absolute;right:12px;top:105px;pointer-events:auto;border:1px solid #65eaff99;border-radius:10px;background:#07101ecc;color:#eafaff;padding:9px 12px;font-size:11px;font-weight:900;letter-spacing:.5px;touch-action:manipulation}
+
+
+/* Zaměřovač, inventář a loot */
+#crosshair{position:fixed;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%);pointer-events:none;z-index:2;filter:drop-shadow(0 1px 3px #000)}
+#crosshair:before,#crosshair:after{content:"";position:absolute;background:#fff;border:1px solid #142333;border-radius:2px}
+#crosshair:before{width:2px;height:22px;left:10px;top:0}#crosshair:after{height:2px;width:22px;top:10px;left:0}
+#shieldbox{position:absolute;left:14px;top:137px;width:190px}
+#shieldfill{height:100%;width:0;background:linear-gradient(90deg,#258bff,#8ce8ff);transition:width .15s}
+#inventory{position:absolute;right:14px;bottom:14px;display:flex;gap:6px;pointer-events:auto;padding:7px;background:#061321cc;border:1px solid #73dcff88;border-radius:14px;backdrop-filter:blur(8px)}
+.slot{width:64px;height:58px;border:1px solid #a9d8ed88;border-radius:9px;background:#13283bdc;color:white;font-size:10px;font-weight:900;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;touch-action:manipulation}
+.slot .emoji{font-size:21px}.slot b{font-size:11px;color:#9ef2ff}
+#openChest{position:absolute;left:50%;bottom:155px;transform:translateX(-50%);display:none;pointer-events:auto;border:1px solid #ffd56b;border-radius:12px;background:#5a3b0ddd;color:#fff;padding:11px 17px;font-weight:1000}
+#useStatus{position:absolute;left:50%;top:calc(50% + 25px);transform:translateX(-50%);font-size:11px;font-weight:900;color:#a9efff;text-shadow:0 2px 5px #000;white-space:nowrap}
+@media(max-width:799px){#inventory{left:50%;right:auto;bottom:9px;transform:translateX(-50%);gap:4px;padding:5px}.slot{width:55px;height:51px;font-size:9px}#shieldbox{top:137px}#openChest{bottom:128px}#help{bottom:67px}}
+@media(min-width:800px){#inventory{right:16px;bottom:16px}}
+
+/* Landscape-first mobile layout */
+@media (orientation:portrait) and (max-width:900px){
+ #rotateNotice{display:flex}
+ #overlay .card{max-height:86dvh;overflow:auto}
+}
+@media (orientation:landscape){#rotateNotice{display:none}}
+#overlay{background:radial-gradient(ellipse at 68% 45%,rgba(16,105,139,.38),transparent 48%),linear-gradient(110deg,#050b18f2,#071a2be8 55%,#10162deF)}
+#overlay:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.36),transparent 65%),repeating-linear-gradient(135deg,transparent 0 42px,rgba(100,220,255,.035) 43px 44px);pointer-events:none}
+.card{position:relative;width:min(850px,96vw);min-height:min(430px,78dvh);display:grid;grid-template-columns:1.05fr .95fr;align-items:center;gap:22px;padding:clamp(18px,3vw,34px);text-align:left;overflow:hidden;background:linear-gradient(125deg,rgba(8,25,48,.96),rgba(9,46,69,.91) 55%,rgba(30,20,54,.94));border:1px solid #61e7ff99;box-shadow:0 20px 90px #0009,0 0 60px #00cfff22}
+.card:after{content:"";position:absolute;width:310px;height:310px;border-radius:50%;right:9%;top:12%;background:radial-gradient(circle,#1ce3ff33,transparent 68%);pointer-events:none}
+.lobby-left,.lobby-right{position:relative;z-index:1}.lobby-kicker{font-size:11px;letter-spacing:4px;color:#62eaff;font-weight:900;margin-bottom:14px}.logo{font-size:clamp(38px,7vw,68px);letter-spacing:2px}.sub{font-size:11px;letter-spacing:3px;margin:12px 0 20px}.lobby-desc{max-width:390px;color:#c6dce9;font-size:clamp(12px,1.7vw,15px);line-height:1.6}.lobby-right{min-height:250px;display:flex;flex-direction:column;justify-content:center;align-items:center;border:1px solid #70dfff55;border-radius:18px;background:linear-gradient(160deg,#183d58aa,#09172dcc);padding:20px;box-shadow:inset 0 0 40px #22cfff12}
+.lobby-avatar{font-size:clamp(76px,13vw,126px);line-height:1;filter:drop-shadow(0 12px 20px #00cfff66);margin:4px 0 12px}.lobby-player{font-weight:1000;letter-spacing:2px;font-size:15px}.lobby-status{font-size:10px;color:#9cc7dc;letter-spacing:2px;margin:6px 0 16px}.lobby-mode{width:100%;padding:10px 12px;border-radius:10px;background:#071321aa;border:1px solid #68dcff55;text-align:center;font-size:11px;font-weight:900;letter-spacing:2px;color:#c9f7ff}
+button.primary{width:min(100%,340px);padding:16px 22px;cursor:pointer} .instructions{font-size:11px;margin-top:12px}
+#rotateNotice{display:none;position:fixed;inset:0;z-index:20;background:#050b18f5;color:white;align-items:center;justify-content:center;text-align:center;padding:24px;font-weight:900;letter-spacing:1px}
+#rotateNotice .rotate-icon{font-size:56px;margin-bottom:14px;display:block;animation:turnPhone 1.8s ease-in-out infinite alternate}
+@keyframes turnPhone{from{transform:rotate(0)}to{transform:rotate(90deg)}}
+@media(max-height:430px) and (orientation:landscape){.card{min-height:90dvh;padding:12px 22px;gap:14px}.lobby-right{min-height:190px;padding:10px}.lobby-avatar{font-size:70px}.instructions{margin-top:7px}.sub{margin:7px 0 12px}}
+@media(min-width:800px){#joystick{width:130px;height:130px}#stick{left:39px;top:39px}#help{font-size:13px}}
+</style>
+
+<meta name="theme-color" content="#07101e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NIGHT ISLAND">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+<div id="game"></div>
+<div class="hud">
+ <div id="brand">NIGHT ISLAND<small>LAST PLAYER STANDING</small></div>
+ <div id="healthbox" class="panel">
+  <div class="barlabel"><span>ENERGIE</span><b id="hptext">100 / 100</b></div><div class="bar"><div id="hpfill" class="fill"></div></div>
+  <div class="barlabel"><span>BOUŘE</span><b id="stormtext">90 s</b></div><div id="stormbar"><div id="stormfill" class="stormfill"></div></div>
+ </div>
+ <div id="shieldbox" class="panel"><div class="barlabel"><span>ŠTÍT</span><b id="shieldtext">0 / 100</b></div><div class="bar"><div id="shieldfill"></div></div></div>
+ <div id="stats">
+  <div class="panel stat">HRÁČI<b id="players">6</b></div>
+  <div class="panel stat">BODY<b id="score">0</b></div>
+  <div class="panel stat">JÁDRA<b id="cores">0</b></div>
+ </div>
+ <button id="fullscreen" type="button">⛶ CELOU OBRAZOVKU</button>
+ <div id="message">PŘIPRAV SE!</div>
+ <div id="toast"></div>
+ <div id="crosshair"></div><div id="useStatus"></div>
+ <button id="openChest">OTEVŘÍT TRUHLU</button>
+ <div id="inventory"><button class="slot" data-item="potion"><span class="emoji">🧪</span>ŠTÍT <b id="countPotion">0</b></button><button class="slot" data-item="big"><span class="emoji">🧴</span>VELKÝ <b id="countBig">0</b></button><button class="slot" data-item="medkit"><span class="emoji">🩹</span>LÉKÁRNIČKA <b id="countMedkit">0</b></button></div>
+ <div id="help">WASD / šipky = pohyb · myš = kamera · klik / FIRE = výboj</div>
+ <div id="joystick"><div id="stick"></div></div>
+ <button class="action" id="fire">FIRE</button><button class="action" id="aim">DASH</button>
+</div>
+<div id="overlay">
+ <div class="card">
+  <div class="lobby-left">
+   <div class="lobby-kicker">SEASON 01 · ISLAND ZERO</div>
+   <div class="logo">NIGHT <span>ISLAND</span></div>
+   <div class="sub">BATTLE ROYALE · SOLO</div>
+   <div class="lobby-desc">Ostrov čeká. Připrav se na výsadek, najdi energetická jádra a zůstaň posledním hráčem ve hře.</div>
+   <p><button class="primary" id="start">▶ VSTOUPIT DO ZÁPASU</button></p>
+   <div class="instructions">Ovládání: levý joystick = pohyb · pravá strana = kamera · FIRE = výboj · DASH = rychlý úskok</div>
+  </div>
+  <div class="lobby-right">
+   <div class="lobby-mode">REŽIM HRY · SOLO</div>
+   <div class="lobby-avatar">🧑‍🚀</div>
+   <div class="lobby-player">OSTROVNÍ PRŮZKUMNÍK</div>
+   <div class="lobby-status">PŘIPRAVEN K ZÁPASU</div>
+   <div class="lobby-mode">MAPA: ISLAND ZERO</div>
+  </div>
+ </div>
+</div>
+<div id="resultScreen" style="display:none;position:fixed;inset:0;z-index:20;background:rgba(2,7,17,.88);align-items:center;justify-content:center;padding:18px;text-align:center">
+ <div style="width:min(520px,94vw);background:linear-gradient(145deg,#14283c,#081321);border:2px solid #62dcff;border-radius:18px;padding:22px;box-shadow:0 0 45px #19bfff44;color:white">
+  <div style="font-size:11px;letter-spacing:4px;color:#67eaff;font-weight:900">NIGHT ISLAND · VÝSLEDEK ZÁPASU</div>
+  <h1 id="resultTitle" style="font-size:clamp(28px,5vw,46px);margin:12px 0">KONEC HRY</h1>
+  <table style="width:100%;border-collapse:collapse;margin:16px 0;text-align:left;font-weight:800">
+   <tr><td style="padding:11px;border-bottom:1px solid #ffffff30;color:#b9d7e7">Umístění</td><td id="resultPlace" style="padding:11px;border-bottom:1px solid #ffffff30;text-align:right">—</td></tr>
+   <tr><td style="padding:11px;border-bottom:1px solid #ffffff30;color:#b9d7e7">Body</td><td id="resultScore" style="padding:11px;border-bottom:1px solid #ffffff30;text-align:right">0</td></tr>
+   <tr><td style="padding:11px;border-bottom:1px solid #ffffff30;color:#b9d7e7">Jádra</td><td id="resultCores" style="padding:11px;border-bottom:1px solid #ffffff30;text-align:right">0</td></tr>
+  </table>
+  <button id="resultOK" class="primary" style="min-width:150px">OK</button>
+ </div>
+</div>
+<div id="rotateNotice"><div><span class="rotate-icon">📱</span>Otoč iPhone na šířku<br><small style="display:block;margin-top:10px;color:#9fc6d8;font-weight:500">NIGHT ISLAND se hraje v režimu na šířku</small></div></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(()=>{
+const root=document.getElementById('game'), overlay=document.getElementById('overlay');
+const fullscreenButton=document.getElementById('fullscreen');
+fullscreenButton.addEventListener('click',async()=>{
+  try{
+    const el=document.documentElement;
+    if(document.fullscreenElement){
+      await document.exitFullscreen();
+    }else if(el.requestFullscreen){
+      await el.requestFullscreen();
+    }else if(el.webkitRequestFullscreen){
+      el.webkitRequestFullscreen();
+    }else{
+      showToast('Na iPhonu použij Sdílet → Přidat na plochu');
+    }
+  }catch(e){
+    showToast('Celou obrazovku tento prohlížeč nepovolil');
+  }
+});
+document.addEventListener('fullscreenchange',()=>{
+  fullscreenButton.textContent=document.fullscreenElement?'⛶ UKONČIT CELOU OBRAZOVKU':'⛶ CELOU OBRAZOVKU';
+});
+
+if(!window.THREE){document.querySelector('.instructions').innerHTML='Hru se nepodařilo načíst. Zkontroluj připojení k internetu a obnov stránku.';return;}
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x79c9ef);scene.fog=new THREE.Fog(0x79c9ef,58,155);
+const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,220);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;root.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xd8f4ff,0x536b42,2.35));
+const sun=new THREE.DirectionalLight(0xfff0cf,2.7);sun.position.set(-25,40,18);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+const mat=(c,r=.8,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+const grass=mat(0x55a85a),sand=mat(0xe6c47a),dark=mat(0x18283a),wood=mat(0x795238),roof=mat(0x3b577b),cyan=new THREE.MeshStandardMaterial({color:0x43eaff,emissive:0x087eaa,emissiveIntensity:1.4}),pink=new THREE.MeshStandardMaterial({color:0xff579e,emissive:0x8e164e,emissiveIntensity:1.0});
+const ground=new THREE.Mesh(new THREE.CircleGeometry(75,64),grass);ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const beach=new THREE.Mesh(new THREE.RingGeometry(61,75,64),sand);beach.rotation.x=-Math.PI/2;beach.position.y=.025;scene.add(beach);
+const water=new THREE.Mesh(new THREE.CircleGeometry(105,64),new THREE.MeshStandardMaterial({color:0x24a8d0,roughness:.28,metalness:.18}));water.rotation.x=-Math.PI/2;water.position.y=-.5;scene.add(water);
+const grid=new THREE.GridHelper(150,60,0x477e91,0x24495a);grid.position.y=.015;grid.material.opacity=.12;grid.material.transparent=true;scene.add(grid);
+function box(x,y,z,sx,sy,sz,material){let o=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o;}
+function tree(x,z,s=1){let trunk=new THREE.Mesh(new THREE.CylinderGeometry(.22*s,.32*s,2*s,8),wood);trunk.position.set(x,s,z);trunk.castShadow=true;scene.add(trunk);const greens=[0x319b52,0x43ad58,0x238b4b];for(let i=0;i<4;i++){let crown=new THREE.Mesh(new THREE.IcosahedronGeometry((.9-i*.09)*s,1),mat(greens[i%3],.92));crown.position.set(x+(i%2?-.38:.38)*s,2.35*s+i*.32*s,z+(i%2?.25:-.25)*s);crown.scale.y=1.15;crown.castShadow=true;scene.add(crown);}}
+for(let i=0;i<45;i++){let a=Math.random()*Math.PI*2,r=19+Math.random()*48;tree(Math.cos(a)*r,Math.sin(a)*r,.7+Math.random()*.55);}
+// Měkké dekorativní mraky dodávají ostrovu jasnější, hravý vzhled.
+const cloudMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:1});
+for(let i=0;i<9;i++){const cg=new THREE.Group();const cx=(Math.random()-.5)*125,cz=(Math.random()-.5)*125;for(let j=0;j<4;j++){const puff=new THREE.Mesh(new THREE.SphereGeometry(2.2+Math.random()*1.1,10,8),cloudMat);puff.position.set((j-1.5)*1.8,Math.random()*.7,Math.random()*.7);puff.scale.y=.55;cg.add(puff);}cg.position.set(cx,23+Math.random()*7,cz);scene.add(cg);}
+const buildings=[];
+function house(x,z,w=7,d=7){const g=new THREE.Group();const wall=mat([0xd9a66f,0xe6d29a,0x9dbdca,0xd49b9b][Math.floor(Math.abs(x+z))%4]),trim=mat(0x55415a),glass=mat(0x7ce7ff,.16,.22);const h=3;
+ // Otevřený interiér se vstupem uprostřed přední stěny
+ const parts=[[w/2,h/2,.18,.18,h,d],[ -w/2,h/2,.18,.18,h,d],[0,h/2,-d/2,w,h,.18],[ -w*.32,h/2,d/2,w*.36,h,.18],[w*.32,h/2,d/2,w*.36,h,.18],[0,.12,0,w,.22,d]];
+ for(const [ox,oy,oz,sx,sy,sz] of parts){const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),wall);m.position.set(ox,oy,oz);m.castShadow=true;m.receiveShadow=true;g.add(m);}
+ const r=new THREE.Mesh(new THREE.ConeGeometry(w*.78,1.6,4),mat([0x3b5c9b,0xb75a55,0x3d8b70,0x8a5aa5][Math.floor(Math.abs(x-z))%4]));r.rotation.y=Math.PI/4;r.position.y=3.7;r.castShadow=true;g.add(r);
+ for(const side of [-1,1]){const win=new THREE.Mesh(new THREE.BoxGeometry(.08,.85,1.25),glass);win.position.set(side*(w/2+.02),1.9,0);g.add(win);}
+ g.position.set(x,0,z);scene.add(g);buildings.push({x,z,w,d,g});return {x,z};}
+const houseSpots=[house(-13,-10,7,7),house(12,-15,7,7),house(-22,12,8,7),house(20,13,8,7),house(2,24,7,7),house(30,-2,8,7)];
+for(let i=0;i<12;i++){let a=Math.random()*6.28,r=12+Math.random()*39;let rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.8+Math.random()*1.4,0),mat(0x65716d));rock.position.set(Math.cos(a)*r,.5,Math.sin(a)*r);rock.scale.y=.65;rock.castShadow=true;scene.add(rock);}
+function addBlock(parent,w,h,d,color,x,y,z,material=null){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material||mat(color,.25,.18));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+function makeHeroModel(parent,colors={},variant=0){
+ const outfit=colors.outfit??[0x2466a8,0x8b3d76,0xb85c32,0x27866e][variant%4], pants=colors.pants??[0x182b49,0x292b40,0x3d3540,0x243c38][variant%4], skin=colors.skin??[0xffc69e,0xd99b72,0x9b6248,0xf0c4a2][variant%4], accent=colors.accent??[0x35e5ff,0xffd34e,0xff6d9e,0x9bff70][variant%4];
+ const darkTrim=colors.pack??0x24374e;
+ // Originální stylizovaná hrdinská silueta: vrstvené oblečení, chrániče a výrazné barvy.
+ addBlock(parent,.76,.72,.43,outfit,0,1.28,0);
+ addBlock(parent,.79,.13,.46,accent,0,1.63,-.015);
+ addBlock(parent,.62,.12,.47,darkTrim,0,.91,-.005); // utility belt
+ addBlock(parent,.25,.24,.29,skin,0,1.78,0);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.34,16,12),mat(skin,.2,.02));head.position.set(0,2.08,-.015);head.scale.set(1,.98,.9);head.castShadow=true;parent.add(head);
+ // Oči, obočí a úsměv jsou jednoduché geometrické detaily, ne převzatá postava.
+ for(const side of [-1,1]){let eye=new THREE.Mesh(new THREE.SphereGeometry(.045,8,6),mat(0x172334,.25));eye.position.set(side*.105,2.105,-.315);parent.add(eye);let brow=addBlock(parent,.13,.035,.035,0x382b2a,side*.105,2.19,-.31);brow.rotation.z=side*-.08;}
+ addBlock(parent,.13,.035,.025,0x9a4f48,0,1.94,-.32);
+ addBlock(parent,.49,.12,.12,colors.mask??0x17283b,0,2.31,-.005);
+ if(variant%3===0){addBlock(parent,.56,.18,.49,colors.hair??0x302333,0,2.34,.015);addBlock(parent,.14,.22,.18,colors.hair??0x302333,-.23,2.24,.02);}
+ else {const cap=new THREE.Mesh(new THREE.SphereGeometry(.37,12,8,0,Math.PI*2,0,Math.PI*.54),mat(colors.hair??0x26384d));cap.position.set(0,2.2,0);parent.add(cap);addBlock(parent,.55,.09,.44,accent,0,2.18,-.015);}
+ // Ramenní chrániče a vrstvené paže.
+ for(const side of [-1,1]){let shoulder=new THREE.Mesh(new THREE.SphereGeometry(.22,10,8),mat(accent,.45));shoulder.position.set(side*.48,1.53,0);shoulder.scale.set(1,.72,1.05);parent.add(shoulder);const arm=addBlock(parent,.23,.55,.25,outfit,side*.51,1.18,-.005);arm.rotation.z=side*-.12;addBlock(parent,.25,.18,.27,skin,side*.52,.86,-.02);addBlock(parent,.27,.12,.28,darkTrim,side*.52,.82,-.02);}
+ // Kalhoty, kolenní pláty a velké barevné boty.
+ for(const side of [-1,1]){addBlock(parent,.29,.57,.34,pants,side*.19,.66,0);addBlock(parent,.3,.16,.36,accent,side*.19,.48,-.02);addBlock(parent,.34,.22,.48,0x172235,side*.19,.22,-.045);addBlock(parent,.31,.07,.5,accent,side*.19,.12,-.06);}
+ // Batoh s kapsami a vlastní barevnou značkou.
+ addBlock(parent,.5,.62,.25,darkTrim,0,1.28,.32);addBlock(parent,.34,.19,.29,accent,0,1.38,.47);addBlock(parent,.13,.34,.12,darkTrim,0,1.78,.34);
+ for(const side of [-1,1])addBlock(parent,.13,.2,.12,accent,side*.31,1.25,.18);
+ // Malý hrudní emblém, čistě originální geometrický symbol.
+ const badge=new THREE.Mesh(new THREE.OctahedronGeometry(.12),mat(accent,.35,.15));badge.position.set(0,1.34,-.245);parent.add(badge);
+}
+const player=new THREE.Group();scene.add(player);makeHeroModel(player,{outfit:0x245b9c,pants:0x182b49,skin:0xffc69e,accent:0x35e5ff,pack:0x17334c,hair:0x17263b},0);
+player.position.set(0,0,0);
+const bots=[],cores=[],shots=[],chests=[];let running=false,hp=100,shield=0,score=0,coreCount=0,time=90,elapsed=0,camYaw=0,camPitch=.18,fireCD=0,dashCD=0,damageFlash=0;
+const inventory={potion:0,big:0,medkit:0};let activeUse=null,useTimer=0;
+function makeBot(x,z,i){let g=new THREE.Group();const palettes=[{outfit:0x9b3f65,pants:0x25253c,accent:0xffcb52,skin:0xd99b72,hair:0x302333,pack:0x4b2944},{outfit:0x3c8b72,pants:0x253b3a,accent:0xff754f,skin:0x9b6248,hair:0x202c35,pack:0x234b46},{outfit:0xb85c32,pants:0x3d3540,accent:0x65eaff,skin:0xf0c4a2,hair:0x4a3022,pack:0x58351f},{outfit:0x6250a8,pants:0x182b49,accent:0x9bff70,skin:0xffc69e,hair:0x26384d,pack:0x322b62}];makeHeroModel(g,palettes[i%palettes.length],i+1);g.position.set(x,0,z);scene.add(g);bots.push({g,hp:55,cd:1+Math.random()*2,phase:Math.random()*6,alive:true});}
+for(let i=0;i<5;i++){let a=i*1.256+0.4,r=22+Math.random()*14;makeBot(Math.cos(a)*r,Math.sin(a)*r,i);}
+function makeCore(x,z){let g=new THREE.Group();let gem=new THREE.Mesh(new THREE.OctahedronGeometry(.65),cyan);gem.position.y=1;g.add(gem);let ring=new THREE.Mesh(new THREE.TorusGeometry(.9,.055,8,24),cyan);ring.rotation.x=Math.PI/2;ring.position.y=1;g.add(ring);g.position.set(x,0,z);scene.add(g);cores.push({g,active:true,phase:Math.random()*6});}
+for(let i=0;i<9;i++){let a=i*2.4,r=8+(i%3)*12;makeCore(Math.cos(a)*r,Math.sin(a)*r);}
+function makeChest(x,z){const g=new THREE.Group();const body=new THREE.Mesh(new THREE.BoxGeometry(1.25,.72,.82),mat(0x87501e,.55));body.position.y=.48;g.add(body);const lid=new THREE.Mesh(new THREE.BoxGeometry(1.3,.2,.88),mat(0xf3b83e,.4));lid.position.y=.92;g.add(lid);const band=new THREE.Mesh(new THREE.BoxGeometry(.18,.8,.9),mat(0xffdf75,.35));band.position.set(0,.63,0);g.add(band);const glow=new THREE.PointLight(0xffc34d,1.2,5);glow.position.y=1.4;g.add(glow);g.position.set(x,0,z);scene.add(g);chests.push({g,opened:false});}
+const chestSpots=[[-13,-10],[12,-15],[-22,12],[20,13],[2,24],[30,-2],[-35,-20],[36,28]];chestSpots.forEach(p=>makeChest(...p));
+const storm=new THREE.Mesh(new THREE.CylinderGeometry(75,75,30,64,1,true),new THREE.MeshBasicMaterial({color:0x8d52ff,transparent:true,opacity:.10,side:THREE.DoubleSide}));storm.position.y=15;scene.add(storm);
+const stormRing=new THREE.Mesh(new THREE.TorusGeometry(75,.22,8,100),new THREE.MeshBasicMaterial({color:0xc27bff,emissive:0x6b21b5}));stormRing.rotation.x=Math.PI/2;stormRing.position.y=.2;scene.add(stormRing);
+const clock=new THREE.Clock();let joy={x:0,y:0,active:false},keys={};let pointer={down:false,x:0,y:0};
+function showToast(t){let el=document.getElementById('toast');el.textContent=t;el.style.opacity=1;clearTimeout(showToast.t);showToast.t=setTimeout(()=>el.style.opacity=0,1300);}
+function updateHUD(){document.getElementById('hptext').textContent=Math.max(0,Math.ceil(hp))+' / 100';document.getElementById('hpfill').style.width=Math.max(0,hp)+'%';document.getElementById('shieldtext').textContent=Math.ceil(shield)+' / 100';document.getElementById('shieldfill').style.width=shield+'%';document.getElementById('countPotion').textContent=inventory.potion;document.getElementById('countBig').textContent=inventory.big;document.getElementById('countMedkit').textContent=inventory.medkit;document.getElementById('score').textContent=score;document.getElementById('cores').textContent=coreCount;document.getElementById('players').textContent=1+bots.filter(b=>b.alive).length;document.getElementById('stormtext').textContent=Math.ceil(time)+' s';document.getElementById('stormfill').style.width=(time/90*100)+'%';}
+function endGame(win){running=false;document.getElementById('resultTitle').textContent=win?'VÍTĚZSTVÍ!':'KONEC HRY';document.getElementById('resultPlace').textContent=win?'1. MÍSTO':'VYŘAZEN';document.getElementById('resultScore').textContent=score;document.getElementById('resultCores').textContent=coreCount;document.getElementById('resultScreen').style.display='flex';}
+function resetGame(){
+  running=false;
+  for(const b of bots) scene.remove(b.g); bots.length=0;
+  for(const c of cores) scene.remove(c.g); cores.length=0;
+  for(const c of chests)scene.remove(c.g);chests.length=0;
+  for(const s of shots){scene.remove(s.o);s.o.geometry.dispose();s.o.material.dispose();} shots.length=0;
+  for(let i=0;i<5;i++){const a=i*1.256+0.4,r=22+Math.random()*14;makeBot(Math.cos(a)*r,Math.sin(a)*r,i);}
+  for(let i=0;i<9;i++){const a=i*2.4,r=8+(i%3)*12;makeCore(Math.cos(a)*r,Math.sin(a)*r);}
+  chestSpots.forEach(p=>makeChest(...p));
+  player.position.set(0,0,0);player.rotation.set(0,0,0);
+  hp=100;shield=0;inventory.potion=0;inventory.big=0;inventory.medkit=0;activeUse=null;useTimer=0;document.getElementById("useStatus").textContent="";score=0;coreCount=0;time=90;elapsed=0;camYaw=0;camPitch=.18;fireCD=0;dashCD=0;damageFlash=0;
+  joy.x=0;joy.y=0;joy.active=false;stick.style.transform='translate(0,0)';
+  storm.scale.setScalar(1);stormRing.scale.setScalar(1);
+  overlay.querySelector('.logo').innerHTML='NIGHT <span>ISLAND</span>';
+  overlay.querySelector('.sub').textContent='SEASON 01 · ISLAND ZERO';
+  document.getElementById('start').textContent='VSTOUPIT DO ZÁPASU';
+  updateHUD();
+}
+function applyDamage(amount){let left=amount;if(shield>0){const absorbed=Math.min(shield,left);shield-=absorbed;left-=absorbed;}if(left>0)hp-=left;}
+function useItem(type){if(!running||activeUse)return;if(!inventory[type]){showToast('TENTO PŘEDMĚT NEMÁŠ');return;}if(type==='medkit'&&hp>=100){showToast('ŽIVOTY MÁŠ PLNÉ');return;}if(type==='potion'&&shield>=100){showToast('ŠTÍT JE PLNÝ');return;}if(type==='big'&&shield>=100){showToast('ŠTÍT JE PLNÝ');return;}inventory[type]--;activeUse=type;useTimer=2;document.getElementById('useStatus').textContent='POUŽÍVÁŠ '+(type==='medkit'?'LÉKÁRNIČKU':'ŠTÍT')+' · 2 s';updateHUD();}
+function finishUse(){if(activeUse==='potion')shield=Math.min(100,shield+25);if(activeUse==='big')shield=Math.min(100,shield+50);if(activeUse==='medkit')hp=Math.min(100,hp+100);showToast(activeUse==='medkit'?'ŽIVOTY OBNOVENY': 'ŠTÍT DOPLNĚN');activeUse=null;document.getElementById('useStatus').textContent='';updateHUD();}
+function openNearbyChest(){if(!running)return;let nearest=null,best=3.2;for(const c of chests){if(c.opened)continue;const d=c.g.position.distanceTo(player.position);if(d<best){best=d;nearest=c;}}if(!nearest){showToast('ŽÁDNÁ TRUHLA NENÍ BLÍZKO');return;}nearest.opened=true;nearest.g.rotation.x=-.7;nearest.g.position.y=.08;const roll=Math.random();if(roll<.38)inventory.potion++;else if(roll<.68)inventory.big++;else inventory.medkit++;updateHUD();showToast('TRUHLA OTEVŘENA · KOŘIST ZÍSKÁNA');}
+document.getElementById('openChest').addEventListener('pointerdown',e=>{e.preventDefault();openNearbyChest();});document.querySelectorAll('.slot').forEach(el=>el.addEventListener('pointerdown',e=>{e.preventDefault();useItem(el.dataset.item);}));
+function shoot(){if(!running||fireCD>0)return;fireCD=.28;let dir=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),player.rotation.y);let origin=player.position.clone().add(new THREE.Vector3(0,1.35,0));let target=null,best=34;for(let b of bots){if(!b.alive)continue;let v=b.g.position.clone().sub(origin);let dist=v.length();v.y=0;let dot=v.normalize().dot(dir);if(dot>.94&&dist<best){best=dist;target=b;}}let end=origin.clone().add(dir.clone().multiplyScalar(27));if(target){target.hp-=28;end.copy(target.g.position).add(new THREE.Vector3(0,1.1,0));if(target.hp<=0){target.alive=false;scene.remove(target.g);score+=100;showToast('PROTIVNÍK VYŘAZEN +100');}else showToast('ZÁSAH!');}let geo=new THREE.BufferGeometry().setFromPoints([origin,end]);let line=new THREE.Line(geo,new THREE.LineBasicMaterial({color:0x66f4ff}));scene.add(line);shots.push({o:line,t:.09});}
+function dash(){if(!running||dashCD>0)return;dashCD=2.3;let f=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),player.rotation.y);player.position.add(f.multiplyScalar(5));showToast('DASH!');}
+document.getElementById('fire').addEventListener('pointerdown',e=>{e.preventDefault();shoot();});document.getElementById('aim').addEventListener('pointerdown',e=>{e.preventDefault();dash();});
+document.getElementById('resultOK').onclick=()=>{document.getElementById('resultScreen').style.display='none';resetGame();overlay.style.display='flex';};
+document.getElementById('start').onclick=async()=>{try{if(screen.orientation?.lock)await screen.orientation.lock('landscape');}catch(e){} resetGame();overlay.style.display='none';running=true;showToast('HODNĚ ŠTĚSTÍ!');};
+const joyEl=document.getElementById('joystick'),stick=document.getElementById('stick');function setJoy(e){let r=joyEl.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,l=Math.hypot(dx,dy),m=38;if(l>m){dx=dx/l*m;dy=dy/l*m;}joy.x=dx/m;joy.y=dy/m;stick.style.transform=`translate(${dx}px,${dy}px)`;}
+joyEl.addEventListener('pointerdown',e=>{joy.active=true;joyEl.setPointerCapture(e.pointerId);setJoy(e);});joyEl.addEventListener('pointermove',e=>{if(joy.active)setJoy(e);});function joyEnd(){joy.active=false;joy.x=joy.y=0;stick.style.transform='translate(0,0)';}joyEl.addEventListener('pointerup',joyEnd);joyEl.addEventListener('pointercancel',joyEnd);
+window.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space')shoot();if(e.key.toLowerCase()==='e')openNearbyChest();if(e.key==='1')useItem('potion');if(e.key==='2')useItem('big');if(e.key==='3')useItem('medkit');});window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'){pointer.down=true;pointer.x=e.clientX;pointer.y=e.clientY;renderer.domElement.requestPointerLock?.();}});
+document.addEventListener('mousemove',e=>{if(document.pointerLockElement===renderer.domElement&&running){camYaw-=e.movementX*.003;camPitch=Math.max(-.1,Math.min(.65,camPitch+e.movementY*.002));}});
+renderer.domElement.addEventListener('pointerup',()=>{pointer.down=false;});
+let touchLook=null;renderer.domElement.addEventListener('touchstart',e=>{if(e.touches.length&&e.touches[0].clientX>innerWidth*.42)touchLook={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:true});
+renderer.domElement.addEventListener('touchmove',e=>{if(touchLook&&e.touches.length){let t=e.touches[0];camYaw-=(t.clientX-touchLook.x)*.004;camPitch=Math.max(-.1,Math.min(.65,camPitch+(t.clientY-touchLook.y)*.002));touchLook={x:t.clientX,y:t.clientY};}},{passive:true});
+renderer.domElement.addEventListener('touchend',()=>touchLook=null);
+function tick(){requestAnimationFrame(tick);let dt=Math.min(clock.getDelta(),.05);if(running){elapsed+=dt;time=Math.max(0,90-elapsed);if(activeUse){useTimer-=dt;if(useTimer<=0)finishUse();}let nearChest=chests.some(c=>!c.opened&&c.g.position.distanceTo(player.position)<3.2);document.getElementById('openChest').style.display=nearChest?'block':'none';fireCD=Math.max(0,fireCD-dt);dashCD=Math.max(0,dashCD-dt);
+let forward=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0)-joy.y;let side=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joy.x;
+let move=new THREE.Vector3(side,0,-forward);if(move.length()>1)move.normalize();move.applyAxisAngle(new THREE.Vector3(0,1,0),camYaw);player.position.addScaledVector(move,dt*10);let dist=Math.hypot(player.position.x,player.position.z);if(dist>67)player.position.multiplyScalar(67/dist);if(move.length()>.08)player.rotation.y=Math.atan2(-move.x,-move.z);
+for(let c of cores){if(!c.active)continue;c.g.rotation.y+=dt*1.4;c.g.position.y=Math.sin(elapsed*2+c.phase)*.15;if(c.g.position.distanceTo(player.position)<2.1){c.active=false;scene.remove(c.g);coreCount++;hp=Math.min(100,hp+18);score+=25;showToast('ENERGETICKÉ JÁDRO +25');}}
+for(let b of bots){if(!b.alive)continue;b.cd-=dt;b.phase+=dt;let v=player.position.clone().sub(b.g.position);let d=v.length();v.y=0;let toward=v.clone().normalize();if(d>9){b.g.position.addScaledVector(toward,dt*(d>25?1.5:.65));}else if(d<6){b.g.position.addScaledVector(toward,-dt*.9);}let strafe=new THREE.Vector3(-toward.z,0,toward.x).multiplyScalar(Math.sin(b.phase*1.4)*.45);b.g.position.addScaledVector(strafe,dt);b.g.rotation.y=Math.atan2(-toward.x,-toward.z);if(d<25&&b.cd<=0){b.cd=2.8+Math.random()*2.2;if(Math.random()<.38){applyDamage(3+Math.random()*2);damageFlash=.12;showToast('BOT TĚ ZASÁHL');}else{showToast('BOT MINUL!');}}}
+if(Math.hypot(player.position.x,player.position.z)>Math.max(15,75-time*.55)){applyDamage(dt*5);damageFlash=.15;}
+if(damageFlash>0){damageFlash-=dt;document.getElementById('healthbox').style.borderColor='#ff4f9a';}else document.getElementById('healthbox').style.borderColor='rgba(93,231,255,.35)';
+storm.scale.setScalar(Math.max(.25,1-time/120));stormRing.scale.setScalar(Math.max(.25,1-time/120));let radius=75-time*.55;stormRing.position.set(0,.2,0);stormRing.geometry.dispose();stormRing.geometry=new THREE.TorusGeometry(Math.max(15,radius),.22,8,100);
+if(hp<=0)endGame(false);else if(bots.every(b=>!b.alive))endGame(true);else if(time<=0){if(Math.hypot(player.position.x,player.position.z)<15)endGame(true);else endGame(false);}
+updateHUD();}
+let target=new THREE.Vector3(player.position.x,1.3,player.position.z);let camDist=7.5;let offset=new THREE.Vector3(Math.sin(camYaw)*camDist,2.8+camPitch*5,Math.cos(camYaw)*camDist);let desired=player.position.clone().add(offset);camera.position.lerp(desired,.12);camera.lookAt(target);
+for(let s of shots){s.t-=dt;if(s.t<=0){scene.remove(s.o);s.o.geometry.dispose();s.o.material.dispose();}}for(let i=shots.length-1;i>=0;i--)if(shots[i].t<=0)shots.splice(i,1);
+renderer.render(scene,camera);}
+tick();
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
+}
+</script>
+</body></html>
